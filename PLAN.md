@@ -17,7 +17,7 @@ PhÃ¡t triá»ƒn tÃ­nh nÄƒng cháº·n trang web (máº¡ng xÃ£ há»™
     - Cháº¡y lá»‡nh \ipconfig /flushdns\ Ä‘á»ƒ xÃ³a cache trÃ¬nh duyá»‡t.
   - Äiá»u kiá»‡n kiá»ƒm tra: CÃ³ thá»ƒ gá»i hÃ m tá»« Frontend, file \hosts\ thay Ä‘á»•i vÃ  truy cáº­p web bá»‹ cháº·n.
 
-- [ ] **Task 3: Cáº­p nháº­t Giao diá»‡n (Frontend) cho tÃ­nh nÄƒng cháº·n Web**
+- [x] **Task 3: Cáº­p nháº­t Giao diá»‡n (Frontend) cho tÃ­nh nÄƒng cháº·n Web**
   - Chi tiáº¿t: ThÃªm UI trong mÃ n hÃ¬nh Create Session Ä‘á»ƒ ngÆ°á»i dÃ¹ng nháº­p/chá»n cÃ¡c trang web muá»‘n cháº·n (VD: facebook.com, youtube.com). Gá»­i danh sÃ¡ch nÃ y xuá»‘ng Backend khi báº¯t Ä‘áº§u.
   - Äiá»u kiá»‡n kiá»ƒm tra: Giao diá»‡n trá»±c quan, cho phÃ©p thÃªm/xÃ³a website khá»i danh sÃ¡ch cháº·n trÆ°á»›c khi cháº¡y.
 
@@ -38,5 +38,6 @@ PhÃ¡t triá»ƒn tÃ­nh nÄƒng cháº·n trang web (máº¡ng xÃ£ há»™
 - [ ] **Task 7: Há»‡ thá»‘ng Äiá»ƒm thÆ°á»Ÿng (Gamification)**
   - Chi tiáº¿t: LÆ°u trá»¯ local Ä‘iá»ƒm thÆ°á»Ÿng. Cá»™ng Ä‘iá»ƒm sau má»—i phiÃªn focus. XÃ¢y dá»±ng UI "Cá»­a hÃ ng" Ä‘á»ƒ dÃ¹ng Ä‘iá»ƒm má»Ÿ khÃ³a Theme.
   - Äiá»u kiá»‡n kiá»ƒm tra: TÃ­ch lÅ©y Ä‘Æ°á»£c Ä‘iá»ƒm, dÃ¹ng Ä‘iá»ƒm Ä‘á»•i Ä‘Æ°á»£c Theme má»›i.
+
 
 

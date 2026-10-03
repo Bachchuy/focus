@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+﻿import React, { useState, useEffect } from "react";
 import { Button } from "../components/Button";
 import { ProcessPicker } from "../components/ProcessPicker";
 import { DEFAULT_PRESET_BLACKLIST } from "../hooks/useSession";
@@ -12,25 +12,25 @@ import {
 } from "lucide-react";
 
 interface CreateSessionProps {
-  onStart: (goal: string, durationMinutes: number, blacklist: string[]) => void;
+  onStart: (goal: string, durationMinutes: number, blacklist: string[], blockedUrls: string[]) => void;
   useOverlay: boolean;
   onToggleOverlay: (val: boolean) => void;
 }
 
 const DURATION_PRESETS = [
-  { minutes: 15, label: "15m", desc: "Nước rút" },
+  { minutes: 15, label: "15m", desc: "NÆ°á»›c rÃºt" },
   { minutes: 25, label: "25m", desc: "Pomodoro" },
-  { minutes: 45, label: "45m", desc: "Sâu" },
-  { minutes: 60, label: "60m", desc: "1 Giờ" },
-  { minutes: 90, label: "90m", desc: "Chuyên sâu" },
+  { minutes: 45, label: "45m", desc: "SÃ¢u" },
+  { minutes: 60, label: "60m", desc: "1 Giá»" },
+  { minutes: 90, label: "90m", desc: "ChuyÃªn sÃ¢u" },
 ];
 
 const SUGGESTED_GOALS = [
-  "Viết báo cáo / Tài liệu",
-  "Ôn thi & Đọc sách",
-  "Lập trình tính năng mới",
-  "Xử lý email tồn đọng",
-  "Luyện viết & Dịch thuật",
+  "Viáº¿t bÃ¡o cÃ¡o / TÃ i liá»‡u",
+  "Ã”n thi & Äá»c sÃ¡ch",
+  "Láº­p trÃ¬nh tÃ­nh nÄƒng má»›i",
+  "Xá»­ lÃ½ email tá»“n Ä‘á»ng",
+  "Luyá»‡n viáº¿t & Dá»‹ch thuáº­t",
 ];
 
 export const CreateSession: React.FC<CreateSessionProps> = ({
@@ -49,6 +49,11 @@ export const CreateSession: React.FC<CreateSessionProps> = ({
 
   const [customDuration, setCustomDuration] = useState<string>("");
 
+  const [blockedUrls, setBlockedUrls] = useState<string[]>(() => {
+    const saved = localStorage.getItem("focuslock_urls_v1");
+    return saved ? JSON.parse(saved) : [];
+  });
+
   const [blacklist, setBlacklist] = useState<string[]>(() => {
     const saved = localStorage.getItem("focuslock_blacklist_v1");
     return saved ? JSON.parse(saved) : DEFAULT_PRESET_BLACKLIST;
@@ -56,9 +61,13 @@ export const CreateSession: React.FC<CreateSessionProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const finalGoal = goal.trim() || "Phiên tập trung chuyên sâu";
+    const finalGoal = goal.trim() || "PhiÃªn táº­p trung chuyÃªn sÃ¢u";
     const finalDuration = customDuration ? parseInt(customDuration, 10) : duration;
-    onStart(finalGoal, Math.max(1, finalDuration), blacklist);
+    localStorage.setItem("focuslock_recent_goal_v1", finalGoal);
+    localStorage.setItem("focuslock_duration_v1", JSON.stringify(finalDuration));
+    localStorage.setItem("focuslock_blacklist_v1", JSON.stringify(blacklist));
+    localStorage.setItem("focuslock_urls_v1", JSON.stringify(blockedUrls));
+    onStart(finalGoal, Math.max(1, finalDuration), blacklist, blockedUrls);
   };
 
   return (
@@ -67,13 +76,13 @@ export const CreateSession: React.FC<CreateSessionProps> = ({
       <div className="text-center mb-8">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs font-medium mb-3">
           <Sparkles className="w-3.5 h-3.5" />
-          <span>Một phiên • Một mục tiêu • Không xao nhãng</span>
+          <span>Má»™t phiÃªn â€¢ Má»™t má»¥c tiÃªu â€¢ KhÃ´ng xao nhÃ£ng</span>
         </div>
         <h1 className="text-3xl font-extrabold tracking-tight text-white">
-          Thiết lập Phiên Tập Trung
+          Thiáº¿t láº­p PhiÃªn Táº­p Trung
         </h1>
         <p className="text-slate-400 text-sm mt-1.5">
-          Khóa chặt sự tập trung, loại bỏ hoàn toàn các ứng dụng gây xao nhãng.
+          KhÃ³a cháº·t sá»± táº­p trung, loáº¡i bá» hoÃ n toÃ n cÃ¡c á»©ng dá»¥ng gÃ¢y xao nhÃ£ng.
         </p>
       </div>
 
@@ -82,12 +91,12 @@ export const CreateSession: React.FC<CreateSessionProps> = ({
         <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-3">
           <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-2">
             <Target className="w-4 h-4 text-indigo-400" />
-            1. Mục tiêu duy nhất của phiên này
+            1. Má»¥c tiÃªu duy nháº¥t cá»§a phiÃªn nÃ y
           </label>
           <input
             type="text"
             required
-            placeholder="Bạn muốn hoàn thành việc gì? (Ví dụ: Hoàn thành bài báo cáo)"
+            placeholder="Báº¡n muá»‘n hoÃ n thÃ nh viá»‡c gÃ¬? (VÃ­ dá»¥: HoÃ n thÃ nh bÃ i bÃ¡o cÃ¡o)"
             value={goal}
             onChange={(e) => setGoal(e.target.value)}
             className="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-4 py-3 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all font-medium"
@@ -96,7 +105,7 @@ export const CreateSession: React.FC<CreateSessionProps> = ({
           {/* Quick goal suggestions */}
           <div className="flex flex-wrap gap-1.5 pt-1">
             <span className="text-[11px] text-slate-500 self-center mr-1">
-              Gợi ý:
+              Gá»£i Ã½:
             </span>
             {SUGGESTED_GOALS.map((suggested) => (
               <button
@@ -116,10 +125,10 @@ export const CreateSession: React.FC<CreateSessionProps> = ({
           <div className="flex items-center justify-between">
             <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-2">
               <Clock className="w-4 h-4 text-indigo-400" />
-              2. Khoảng thời gian tập trung
+              2. Khoáº£ng thá»i gian táº­p trung
             </label>
             <span className="text-xs font-mono font-bold text-indigo-400 bg-indigo-500/10 px-2.5 py-1 rounded-md border border-indigo-500/20">
-              {customDuration ? `${customDuration} phút` : `${duration} phút`}
+              {customDuration ? `${customDuration} phÃºt` : `${duration} phÃºt`}
             </span>
           </div>
 
@@ -155,23 +164,23 @@ export const CreateSession: React.FC<CreateSessionProps> = ({
 
           {/* Custom duration input */}
           <div className="pt-1 flex items-center gap-2 text-xs text-slate-400">
-            <span>Hoặc tự đặt:</span>
+            <span>Hoáº·c tá»± Ä‘áº·t:</span>
             <input
               type="number"
               min="1"
               max="300"
-              placeholder="Số phút..."
+              placeholder="Sá»‘ phÃºt..."
               value={customDuration}
               onChange={(e) => setCustomDuration(e.target.value)}
               className="w-24 bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1 text-xs text-slate-200 focus:outline-none focus:border-indigo-500"
             />
-            <span>phút</span>
+            <span>phÃºt</span>
           </div>
         </div>
 
         {/* Section 3: App Blacklist */}
         <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-5 shadow-sm">
-          <ProcessPicker blacklist={blacklist} onChange={setBlacklist} />
+          <ProcessPicker blacklist={blacklist} onChange={setBlacklist} blockedUrls={blockedUrls} onChangeUrls={setBlockedUrls} />
         </div>
 
         {/* Section 4: Overlay Widget Preference */}
@@ -182,10 +191,10 @@ export const CreateSession: React.FC<CreateSessionProps> = ({
             </div>
             <div>
               <div className="text-xs font-semibold text-slate-200">
-                Chế độ Mini Overlay Widget
+                Cháº¿ Ä‘á»™ Mini Overlay Widget
               </div>
               <div className="text-[11px] text-slate-400">
-                Thu nhỏ ứng dụng thành thanh nổi góc màn hình và luôn ghim trên cùng
+                Thu nhá» á»©ng dá»¥ng thÃ nh thanh ná»•i gÃ³c mÃ n hÃ¬nh vÃ  luÃ´n ghim trÃªn cÃ¹ng
               </div>
             </div>
           </div>
@@ -213,10 +222,13 @@ export const CreateSession: React.FC<CreateSessionProps> = ({
             className="w-full text-base py-4 rounded-2xl shadow-xl shadow-indigo-600/25"
             icon={<Play className="w-5 h-5 fill-current" />}
           >
-            Bắt đầu Tập trung ngay
+            Báº¯t Ä‘áº§u Táº­p trung ngay
           </Button>
         </div>
       </form>
     </div>
   );
 };
+
+
+
