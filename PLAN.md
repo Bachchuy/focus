@@ -9,7 +9,7 @@ PhÃ¡t triá»ƒn tÃ­nh nÄƒng cháº·n trang web (máº¡ng xÃ£ há»™
   - Chi tiáº¿t: NÃ¢ng cáº¥p hÃ m backend (Rust) Ä‘á»ƒ láº¥y danh sÃ¡ch á»©ng dá»¥ng rÃµ rÃ ng hÆ¡n (cÃ³ thá»ƒ káº¿t há»£p láº¥y danh sÃ¡ch pháº§n má»m Ä‘Ã£ cÃ i Ä‘áº·t qua Registry hoáº·c cáº£i thiá»‡n danh sÃ¡ch tiáº¿n trÃ¬nh). Cáº­p nháº­t UI Ä‘á»ƒ ngÆ°á»i dÃ¹ng dá»… chá»n.
   - Äiá»u kiá»‡n kiá»ƒm tra: NgÆ°á»i dÃ¹ng tháº¥y Ä‘Æ°á»£c danh sÃ¡ch cÃ¡c app cáº§n cháº·n trÃªn mÃ¡y vÃ  chá»n Ä‘Æ°á»£c.
 
-- [ ] **Task 2: XÃ¢y dá»±ng cÆ¡ cháº¿ cháº·n Website báº±ng Rust (Backend)**
+- [x] **Task 2: XÃ¢y dá»±ng cÆ¡ cháº¿ cháº·n Website báº±ng Rust (Backend)**
   - Chi tiáº¿t: 
     - Viáº¿t hÃ m Rust Ä‘á»ƒ Ä‘á»c vÃ  sao lÆ°u file \hosts\.
     - Viáº¿t hÃ m thÃªm cÃ¡c tÃªn miá»n (domain) cáº§n cháº·n trá» vá» \127.0.0.1\.
@@ -38,4 +38,5 @@ PhÃ¡t triá»ƒn tÃ­nh nÄƒng cháº·n trang web (máº¡ng xÃ£ há»™
 - [ ] **Task 7: Há»‡ thá»‘ng Äiá»ƒm thÆ°á»Ÿng (Gamification)**
   - Chi tiáº¿t: LÆ°u trá»¯ local Ä‘iá»ƒm thÆ°á»Ÿng. Cá»™ng Ä‘iá»ƒm sau má»—i phiÃªn focus. XÃ¢y dá»±ng UI "Cá»­a hÃ ng" Ä‘á»ƒ dÃ¹ng Ä‘iá»ƒm má»Ÿ khÃ³a Theme.
   - Äiá»u kiá»‡n kiá»ƒm tra: TÃ­ch lÅ©y Ä‘Æ°á»£c Ä‘iá»ƒm, dÃ¹ng Ä‘iá»ƒm Ä‘á»•i Ä‘Æ°á»£c Theme má»›i.
+
 

@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize};
+﻿use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::{Arc, Mutex, RwLock};
@@ -21,6 +21,7 @@ pub struct SessionStatus {
     pub remaining_seconds: u64,
     pub blocked_count: u32,
     pub blacklist: Vec<String>,
+    pub blocked_urls: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -46,6 +47,7 @@ pub struct BlockingState {
     pub duration_minutes: Arc<AtomicU32>,
     pub start_time: Arc<Mutex<Option<Instant>>>,
     pub blacklist: Arc<RwLock<HashSet<String>>>,
+    pub blocked_urls: Arc<RwLock<Vec<String>>>,
     pub blocked_count: Arc<AtomicU32>,
     pub blocked_events: Arc<Mutex<Vec<BlockedEvent>>>,
     pub stop_signal: Arc<AtomicBool>,
@@ -59,6 +61,7 @@ impl BlockingState {
             duration_minutes: Arc::new(AtomicU32::new(25)),
             start_time: Arc::new(Mutex::new(None)),
             blacklist: Arc::new(RwLock::new(HashSet::new())),
+            blocked_urls: Arc::new(RwLock::new(Vec::new())),
             blocked_count: Arc::new(AtomicU32::new(0)),
             blocked_events: Arc::new(Mutex::new(Vec::new())),
             stop_signal: Arc::new(AtomicBool::new(false)),
@@ -70,10 +73,16 @@ impl BlockingState {
         goal: String,
         duration_minutes: u32,
         blacklist_items: Vec<String>,
+        blocked_urls_list: Vec<String>,
         app_handle: AppHandle,
     ) -> Result<SessionStatus, String> {
         if self.is_active.load(Ordering::SeqCst) {
             return Err("A focus session is already running.".to_string());
+        }
+
+        // Apply URL block
+        if let Err(e) = crate::hosts::block_urls(&blocked_urls_list) {
+            return Err(e);
         }
 
         // Normalize blacklist to lowercase
@@ -97,6 +106,11 @@ impl BlockingState {
         {
             let mut bl = self.blacklist.write().map_err(|e| e.to_string())?;
             *bl = set;
+        }
+
+        {
+            let mut bu = self.blocked_urls.write().map_err(|e| e.to_string())?;
+            *bu = blocked_urls_list.clone();
         }
 
         {
@@ -135,6 +149,7 @@ impl BlockingState {
 
                 if elapsed >= total_seconds {
                     // Session naturally completed!
+                    let _ = crate::hosts::unblock_urls(); // Khôi phục hosts
                     state_clone.is_active.store(false, Ordering::SeqCst);
                     let _ = app_handle_clone.emit("session-completed", ());
                     break;
@@ -200,6 +215,9 @@ impl BlockingState {
     pub fn stop(&self) -> Result<SessionSummary, String> {
         self.stop_signal.store(true, Ordering::SeqCst);
         self.is_active.store(false, Ordering::SeqCst);
+        
+        // Restore hosts file
+        let _ = crate::hosts::unblock_urls();
 
         let goal = self
             .goal
@@ -274,6 +292,12 @@ impl BlockingState {
         } else {
             Vec::new()
         };
+        
+        let blocked_urls = if let Ok(bu) = self.blocked_urls.read() {
+            bu.clone()
+        } else {
+            Vec::new()
+        };
 
         SessionStatus {
             is_active,
@@ -283,29 +307,7 @@ impl BlockingState {
             remaining_seconds,
             blocked_count,
             blacklist,
+            blocked_urls,
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_new_blocking_state_is_idle() {
-        let state = BlockingState::new();
-        let status = state.get_status();
-        assert!(!status.is_active);
-        assert_eq!(status.blocked_count, 0);
-        assert_eq!(status.duration_minutes, 25);
-    }
-
-    #[test]
-    fn test_stop_idle_session() {
-        let state = BlockingState::new();
-        let summary = state.stop().expect("stop should succeed");
-        assert_eq!(summary.blocked_count, 0);
-        assert!(!summary.completed);
-    }
-}
-

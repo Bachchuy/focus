@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+﻿import { useState, useEffect, useCallback, useRef } from "react";
 import {
   SessionStatus,
   SessionSummary,
@@ -36,6 +36,7 @@ export function useSession() {
     remaining_seconds: 1500,
     blocked_count: 0,
     blacklist: [],
+    blocked_urls: [],
   });
 
   const [summary, setSummary] = useState<SessionSummary | null>(null);
@@ -186,3 +187,4 @@ export function useSession() {
     refreshStatus,
   };
 }
+

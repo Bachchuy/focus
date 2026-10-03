@@ -1,4 +1,4 @@
-use crate::blocking::{BlockingState, ProcessItem, SessionStatus, SessionSummary};
+﻿use crate::blocking::{BlockingState, ProcessItem, SessionStatus, SessionSummary};
 use std::collections::HashSet;
 use sysinfo::{ProcessesToUpdate, System};
 use tauri::{AppHandle, LogicalSize, Manager, Size, State};
@@ -39,10 +39,11 @@ pub fn start_blocking(
     goal: String,
     duration_minutes: u32,
     blacklist: Vec<String>,
+    blocked_urls: Vec<String>,
     state: State<'_, BlockingState>,
     app_handle: AppHandle,
 ) -> Result<SessionStatus, String> {
-    state.start(goal, duration_minutes, blacklist, app_handle)
+    state.start(goal, duration_minutes, blacklist, blocked_urls, app_handle)
 }
 
 #[tauri::command]
@@ -181,3 +182,4 @@ pub fn get_installed_apps() -> Result<Vec<InstalledApp>, String> {
     
     Ok(apps)
 }
+

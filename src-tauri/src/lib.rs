@@ -1,6 +1,7 @@
 ﻿#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 pub mod blocking;
+pub mod hosts;
 pub mod commands;
 
 use blocking::BlockingState;
@@ -22,4 +23,5 @@ pub fn run() {
         .run(tauri::generate_context!())
         .expect("error while running FocusLock application");
 }
+
 
