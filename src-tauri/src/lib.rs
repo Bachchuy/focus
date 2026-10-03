@@ -1,4 +1,4 @@
-#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+﻿#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 pub mod blocking;
 pub mod commands;
@@ -14,6 +14,7 @@ pub fn run() {
             commands::stop_blocking,
             commands::get_session_status,
             commands::get_running_processes,
+            commands::get_installed_apps,
             commands::set_window_mode,
             commands::minimize_window,
             commands::close_window,
@@ -21,3 +22,4 @@ pub fn run() {
         .run(tauri::generate_context!())
         .expect("error while running FocusLock application");
 }
+

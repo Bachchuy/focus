@@ -160,3 +160,18 @@ export async function onSessionCompleted(
     callback();
   });
 }
+
+export interface InstalledAppItem {
+  name: string;
+  executable: string;
+}
+
+export async function getInstalledApps(): Promise<InstalledAppItem[]> {
+  if (!isTauri()) {
+    return [
+      { name: "Google Chrome", executable: "chrome.exe" },
+      { name: "Discord", executable: "discord.exe" },
+    ];
+  }
+  return await invoke<InstalledAppItem[]>("get_installed_apps");
+}

@@ -134,3 +134,50 @@ pub fn close_window(app_handle: AppHandle) -> Result<(), String> {
         Err("Main window not found".into())
     }
 }
+use std::process::Command;
+use serde::{Serialize, Deserialize};
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct InstalledApp {
+    pub name: String,
+    pub executable: String,
+}
+
+#[tauri::command]
+pub fn get_installed_apps() -> Result<Vec<InstalledApp>, String> {
+    let script = r#"
+        $shell = New-Object -ComObject WScript.Shell
+        Get-ChildItem -Path "$env:ProgramData\Microsoft\Windows\Start Menu\Programs", "$env:APPDATA\Microsoft\Windows\Start Menu\Programs" -Recurse -Filter *.lnk -ErrorAction SilentlyContinue | ForEach-Object {
+            $target = $shell.CreateShortcut($_.FullName).TargetPath
+            if ($target -match "\.exe$") {
+                [PSCustomObject]@{
+                    Name = $_.BaseName
+                    Executable = [System.IO.Path]::GetFileName($target)
+                }
+            }
+        } | Group-Object Executable | ForEach-Object { $_.Group[0] } | ConvertTo-Json -Compress
+    "#;
+
+    let output = Command::new("powershell")
+        .args(&["-NoProfile", "-Command", script])
+        .output()
+        .map_err(|e| e.to_string())?;
+
+    if !output.status.success() {
+        return Err(String::from_utf8_lossy(&output.stderr).to_string());
+    }
+
+    let json_str = String::from_utf8_lossy(&output.stdout);
+    let apps: Vec<InstalledApp> = serde_json::from_str(&json_str).unwrap_or_else(|_| {
+        if let Ok(single) = serde_json::from_str::<InstalledApp>(&json_str) {
+            vec![single]
+        } else {
+            Vec::new()
+        }
+    });
+    
+    let mut apps = apps;
+    apps.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+    
+    Ok(apps)
+}
