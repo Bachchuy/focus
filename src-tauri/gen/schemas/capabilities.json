@@ -1,0 +1,1 @@
+{"default":{"identifier":"default","description":"Default capabilities for FocusLock","local":true,"windows":["*"],"permissions":["core:default"]}}
