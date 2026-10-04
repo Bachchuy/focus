@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+﻿import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 
 export interface BlockedEvent {
@@ -14,6 +14,7 @@ export interface SessionStatus {
   remaining_seconds: number;
   blocked_count: number;
   blacklist: string[];
+  blocked_urls: string[];
 }
 
 export interface SessionSummary {
@@ -39,7 +40,7 @@ export const isTauri = (): boolean => {
 export async function startBlocking(
   goal: string,
   durationMinutes: number,
-  blacklist: string[]
+  blacklist: string[], blockedUrls: string[] = []
 ): Promise<SessionStatus> {
   if (!isTauri()) {
     console.warn("Running in web mode. Mocking startBlocking.");
@@ -50,7 +51,7 @@ export async function startBlocking(
       elapsed_seconds: 0,
       remaining_seconds: durationMinutes * 60,
       blocked_count: 0,
-      blacklist,
+      blacklist, blocked_urls: blockedUrls,
     };
   }
 
@@ -58,6 +59,7 @@ export async function startBlocking(
     goal,
     durationMinutes,
     blacklist,
+    blockedUrls,
   });
 }
 
@@ -92,6 +94,7 @@ export async function getSessionStatus(): Promise<SessionStatus> {
       remaining_seconds: 1500,
       blocked_count: 0,
       blacklist: [],
+      blocked_urls: [],
     };
   }
 
@@ -160,3 +163,21 @@ export async function onSessionCompleted(
     callback();
   });
 }
+
+export interface InstalledAppItem {
+  name: string;
+  executable: string;
+}
+
+export async function getInstalledApps(): Promise<InstalledAppItem[]> {
+  if (!isTauri()) {
+    return [
+      { name: "Google Chrome", executable: "chrome.exe" },
+      { name: "Discord", executable: "discord.exe" },
+    ];
+  }
+  return await invoke<InstalledAppItem[]>("get_installed_apps");
+}
+
+
+

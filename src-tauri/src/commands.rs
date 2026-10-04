@@ -1,4 +1,4 @@
-use crate::blocking::{BlockingState, ProcessItem, SessionStatus, SessionSummary};
+﻿use crate::blocking::{BlockingState, ProcessItem, SessionStatus, SessionSummary};
 use std::collections::HashSet;
 use sysinfo::{ProcessesToUpdate, System};
 use tauri::{AppHandle, LogicalSize, Manager, Size, State};
@@ -39,10 +39,11 @@ pub fn start_blocking(
     goal: String,
     duration_minutes: u32,
     blacklist: Vec<String>,
+    blocked_urls: Vec<String>,
     state: State<'_, BlockingState>,
     app_handle: AppHandle,
 ) -> Result<SessionStatus, String> {
-    state.start(goal, duration_minutes, blacklist, app_handle)
+    state.start(goal, duration_minutes, blacklist, blocked_urls, app_handle)
 }
 
 #[tauri::command]
@@ -93,21 +94,27 @@ pub fn set_window_mode(mode: String, app_handle: AppHandle) -> Result<(), String
     if let Some(window) = app_handle.get_webview_window("main") {
         match mode.as_str() {
             "overlay" => {
-                let _ = window.set_size(Size::Logical(LogicalSize {
-                    width: 360.0,
-                    height: 140.0,
-                }));
-                let _ = window.set_always_on_top(true);
-                let _ = window.set_resizable(false);
+                window.set_decorations(false).map_err(|e| e.to_string())?;
+                window
+                    .set_size(Size::Logical(LogicalSize {
+                        width: 360.0,
+                        height: 140.0,
+                    }))
+                    .map_err(|e| e.to_string())?;
+                window.set_always_on_top(true).map_err(|e| e.to_string())?;
+                window.set_resizable(false).map_err(|e| e.to_string())?;
             }
             "main" => {
-                let _ = window.set_size(Size::Logical(LogicalSize {
-                    width: 860.0,
-                    height: 720.0,
-                }));
-                let _ = window.set_always_on_top(false);
-                let _ = window.set_resizable(true);
-                let _ = window.center();
+                window.set_decorations(true).map_err(|e| e.to_string())?;
+                window
+                    .set_size(Size::Logical(LogicalSize {
+                        width: 860.0,
+                        height: 720.0,
+                    }))
+                    .map_err(|e| e.to_string())?;
+                window.set_always_on_top(false).map_err(|e| e.to_string())?;
+                window.set_resizable(true).map_err(|e| e.to_string())?;
+                window.center().map_err(|e| e.to_string())?;
             }
             _ => return Err("Invalid window mode".into()),
         }
@@ -134,3 +141,51 @@ pub fn close_window(app_handle: AppHandle) -> Result<(), String> {
         Err("Main window not found".into())
     }
 }
+use std::process::Command;
+use serde::{Serialize, Deserialize};
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct InstalledApp {
+    pub name: String,
+    pub executable: String,
+}
+
+#[tauri::command]
+pub fn get_installed_apps() -> Result<Vec<InstalledApp>, String> {
+    let script = r#"
+        $shell = New-Object -ComObject WScript.Shell
+        Get-ChildItem -Path "$env:ProgramData\Microsoft\Windows\Start Menu\Programs", "$env:APPDATA\Microsoft\Windows\Start Menu\Programs" -Recurse -Filter *.lnk -ErrorAction SilentlyContinue | ForEach-Object {
+            $target = $shell.CreateShortcut($_.FullName).TargetPath
+            if ($target -match "\.exe$") {
+                [PSCustomObject]@{
+                    Name = $_.BaseName
+                    Executable = [System.IO.Path]::GetFileName($target)
+                }
+            }
+        } | Group-Object Executable | ForEach-Object { $_.Group[0] } | ConvertTo-Json -Compress
+    "#;
+
+    let output = Command::new("powershell")
+        .args(&["-NoProfile", "-Command", script])
+        .output()
+        .map_err(|e| e.to_string())?;
+
+    if !output.status.success() {
+        return Err(String::from_utf8_lossy(&output.stderr).to_string());
+    }
+
+    let json_str = String::from_utf8_lossy(&output.stdout);
+    let apps: Vec<InstalledApp> = serde_json::from_str(&json_str).unwrap_or_else(|_| {
+        if let Ok(single) = serde_json::from_str::<InstalledApp>(&json_str) {
+            vec![single]
+        } else {
+            Vec::new()
+        }
+    });
+    
+    let mut apps = apps;
+    apps.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+    
+    Ok(apps)
+}
+

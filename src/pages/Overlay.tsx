@@ -27,7 +27,7 @@ export const Overlay: React.FC<OverlayProps> = ({
   return (
     <div
       data-tauri-drag-region
-      className="w-full h-full min-h-[140px] bg-slate-950/95 border border-indigo-500/40 rounded-xl p-3 flex flex-col justify-between shadow-2xl backdrop-blur-md select-none overflow-hidden relative"
+      className="w-full h-full min-h-[140px] bg-slate-950/75 border border-indigo-400/30 rounded-xl p-3 flex flex-col justify-between shadow-2xl shadow-indigo-950/40 backdrop-blur-xl select-none overflow-hidden relative"
     >
       {/* Dynamic Alert Banner when an app is killed */}
       {recentAlert && (
