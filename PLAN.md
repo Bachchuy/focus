@@ -31,6 +31,30 @@ PhÃ¡t triá»ƒn tÃ­nh nÄƒng cháº·n trang web (máº¡ng xÃ£ há»™
   - Chi tiáº¿t: Cáº¥u hÃ¬nh Tauri Window (`alwaysOnTop`, `decorations: false`, `transparent: true`). Render UI Ä‘áº¿m ngÆ°á»£c Ä‘á»“ng bá»™ vá»›i app chÃ­nh.
   - Äiá»u kiá»‡n kiá»ƒm tra: Widget hiá»ƒn thá»‹ trong suá»‘t, luÃ´n ná»•i trÃªn cÃ¡c app khÃ¡c.
 
+**Website blocking reliability plan (Giai đoạn 1):**
+1. Normalize selected website inputs to a bare hostname in the picker and defensively in the Rust hosts writer, removing schemes, `www.`, paths, queries, fragments, and trailing dots/ports as appropriate.
+2. Write valid hosts entries for the normalized host and its `www` alias, deduplicating entries; keep the existing hosts-file architecture and do not add dependencies.
+3. Validation completed: `cargo check`, `npm run build`, and `git diff --check` pass. Runtime acceptance still needs confirmation in the app by selecting or pasting `https://www.facebook.com/` and confirming fresh Facebook navigation is blocked during the session.
+4. Follow `GIT_FLOW.md`: create a bugfix branch from `develop`, commit with a Conventional Commit message, and push the branch as explicitly requested.
+
+**Start button failure repair plan (Giai đoạn 1):**
+1. Correct the `start_blocking` invoke payload in `src/services/tauri.ts` to use the Tauri camelCase argument key `blockedUrls`, matching the Rust command parameter `blocked_urls`.
+2. Add focused startup error feedback in the Create Session form so rejected start requests are visible to the user.
+3. Keep session behavior and layout unchanged apart from displaying startup errors. Validation completed: `npm run build` and `git diff --check` pass.
+
+**Task 5 UI text repair plan (Giai đoạn 1):**
+1. Replace the mojibake Vietnamese string literals in `src/pages/CreateSession.tsx` with correctly encoded Vietnamese text matching the labels, presets, suggestions, and helper copy shown in the screenshot.
+2. Correct the mock session goal in `src/services/tauri.ts` so web-mode summaries also display readable Vietnamese.
+3. Keep behavior, layout, and session logic unchanged; save source files as UTF-8.
+4. Validation completed: `npm run build`, `git diff --check`, and the source mojibake scan pass. Acceptance: the corrected source now contains readable Vietnamese throughout the Create Session screen.
+
+**Task 5 implementation plan (Giai đoạn 1):**
+1. Keep the existing single `main` window and its current mode-switching flow.
+2. In overlay mode, set the compact size, always-on-top, non-resizable, `decorations: false`, and `transparent: true`; restore the normal window properties when returning to main mode.
+3. Update the Overlay root styling so the WebView can show the transparent window surface while retaining a readable, subtly translucent widget panel.
+4. Preserve the in-progress `useSession.start` signature change that forwards `blockedUrls`; avoid unrelated refactors and dependency changes.
+5. Validation completed: `npm run build` and `cargo check` pass. Runtime visual confirmation is still needed for transparency, always-on-top behavior, and restoring the main window.
+
 - [ ] **Task 6: PhÃ¡t triá»ƒn Há»‡ thá»‘ng Theme & Ã‚m thanh**
   - Chi tiáº¿t: XÃ¢y dá»±ng UI thay Ä‘á»•i Theme cho Widget. TÃ­ch há»£p Audio Player phÃ¡t nháº¡c ná»n thÆ° giÃ£n (mÆ°a, lofi) ngay trÃªn Widget.
   - Äiá»u kiá»‡n kiá»ƒm tra: Widget Ä‘á»•i giao diá»‡n realtime, phÃ¡t/táº¯t Ä‘Æ°á»£c nháº¡c ná»n.

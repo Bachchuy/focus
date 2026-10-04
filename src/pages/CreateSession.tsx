@@ -12,25 +12,25 @@ import {
 } from "lucide-react";
 
 interface CreateSessionProps {
-  onStart: (goal: string, durationMinutes: number, blacklist: string[], blockedUrls: string[]) => void;
+  onStart: (goal: string, durationMinutes: number, blacklist: string[], blockedUrls: string[]) => void | Promise<void>;
   useOverlay: boolean;
   onToggleOverlay: (val: boolean) => void;
 }
 
 const DURATION_PRESETS = [
-  { minutes: 15, label: "15m", desc: "NÆ°á»›c rÃºt" },
+  { minutes: 15, label: "15m", desc: "Nước rút" },
   { minutes: 25, label: "25m", desc: "Pomodoro" },
-  { minutes: 45, label: "45m", desc: "SÃ¢u" },
-  { minutes: 60, label: "60m", desc: "1 Giá»" },
-  { minutes: 90, label: "90m", desc: "ChuyÃªn sÃ¢u" },
+  { minutes: 45, label: "45m", desc: "Sâu" },
+  { minutes: 60, label: "60m", desc: "1 Giờ" },
+  { minutes: 90, label: "90m", desc: "Chuyên sâu" },
 ];
 
 const SUGGESTED_GOALS = [
-  "Viáº¿t bÃ¡o cÃ¡o / TÃ i liá»‡u",
-  "Ã”n thi & Äá»c sÃ¡ch",
-  "Láº­p trÃ¬nh tÃ­nh nÄƒng má»›i",
-  "Xá»­ lÃ½ email tá»“n Ä‘á»ng",
-  "Luyá»‡n viáº¿t & Dá»‹ch thuáº­t",
+  "Viết báo cáo / Tài liệu",
+  "Ôn thi & Đọc sách",
+  "Lập trình tính năng mới",
+  "Xử lý email tồn đọng",
+  "Luyện viết & Dịch thuật",
 ];
 
 export const CreateSession: React.FC<CreateSessionProps> = ({
@@ -48,6 +48,8 @@ export const CreateSession: React.FC<CreateSessionProps> = ({
   });
 
   const [customDuration, setCustomDuration] = useState<string>("");
+  const [isStarting, setIsStarting] = useState(false);
+  const [startError, setStartError] = useState<string | null>(null);
 
   const [blockedUrls, setBlockedUrls] = useState<string[]>(() => {
     const saved = localStorage.getItem("focuslock_urls_v1");
@@ -59,15 +61,24 @@ export const CreateSession: React.FC<CreateSessionProps> = ({
     return saved ? JSON.parse(saved) : DEFAULT_PRESET_BLACKLIST;
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const finalGoal = goal.trim() || "PhiÃªn táº­p trung chuyÃªn sÃ¢u";
+    setStartError(null);
+    setIsStarting(true);
+    const finalGoal = goal.trim() || "Phiên tập trung chuyên sâu";
     const finalDuration = customDuration ? parseInt(customDuration, 10) : duration;
     localStorage.setItem("focuslock_recent_goal_v1", finalGoal);
     localStorage.setItem("focuslock_duration_v1", JSON.stringify(finalDuration));
     localStorage.setItem("focuslock_blacklist_v1", JSON.stringify(blacklist));
     localStorage.setItem("focuslock_urls_v1", JSON.stringify(blockedUrls));
-    onStart(finalGoal, Math.max(1, finalDuration), blacklist, blockedUrls);
+    try {
+      await onStart(finalGoal, Math.max(1, finalDuration), blacklist, blockedUrls);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      setStartError(`Không thể bắt đầu phiên: ${message}`);
+    } finally {
+      setIsStarting(false);
+    }
   };
 
   return (
@@ -76,13 +87,13 @@ export const CreateSession: React.FC<CreateSessionProps> = ({
       <div className="text-center mb-8">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs font-medium mb-3">
           <Sparkles className="w-3.5 h-3.5" />
-          <span>Má»™t phiÃªn â€¢ Má»™t má»¥c tiÃªu â€¢ KhÃ´ng xao nhÃ£ng</span>
+          <span>Một phiên • Một mục tiêu • Không xao nhãng</span>
         </div>
         <h1 className="text-3xl font-extrabold tracking-tight text-white">
-          Thiáº¿t láº­p PhiÃªn Táº­p Trung
+          Thiết lập Phiên Tập Trung
         </h1>
         <p className="text-slate-400 text-sm mt-1.5">
-          KhÃ³a cháº·t sá»± táº­p trung, loáº¡i bá» hoÃ n toÃ n cÃ¡c á»©ng dá»¥ng gÃ¢y xao nhÃ£ng.
+          Khóa chặt sự tập trung, loại bỏ hoàn toàn các ứng dụng gây xao nhãng.
         </p>
       </div>
 
@@ -91,12 +102,11 @@ export const CreateSession: React.FC<CreateSessionProps> = ({
         <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-3">
           <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-2">
             <Target className="w-4 h-4 text-indigo-400" />
-            1. Má»¥c tiÃªu duy nháº¥t cá»§a phiÃªn nÃ y
+            1. Mục tiêu duy nhất của phiên này
           </label>
           <input
             type="text"
-            required
-            placeholder="Báº¡n muá»‘n hoÃ n thÃ nh viá»‡c gÃ¬? (VÃ­ dá»¥: HoÃ n thÃ nh bÃ i bÃ¡o cÃ¡o)"
+            placeholder="Bạn muốn hoàn thành việc gì? (Ví dụ: Hoàn thành bài báo cáo)"
             value={goal}
             onChange={(e) => setGoal(e.target.value)}
             className="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-4 py-3 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all font-medium"
@@ -105,7 +115,7 @@ export const CreateSession: React.FC<CreateSessionProps> = ({
           {/* Quick goal suggestions */}
           <div className="flex flex-wrap gap-1.5 pt-1">
             <span className="text-[11px] text-slate-500 self-center mr-1">
-              Gá»£i Ã½:
+              Gợi ý:
             </span>
             {SUGGESTED_GOALS.map((suggested) => (
               <button
@@ -125,10 +135,10 @@ export const CreateSession: React.FC<CreateSessionProps> = ({
           <div className="flex items-center justify-between">
             <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-2">
               <Clock className="w-4 h-4 text-indigo-400" />
-              2. Khoáº£ng thá»i gian táº­p trung
+              2. Khoảng thời gian tập trung
             </label>
             <span className="text-xs font-mono font-bold text-indigo-400 bg-indigo-500/10 px-2.5 py-1 rounded-md border border-indigo-500/20">
-              {customDuration ? `${customDuration} phÃºt` : `${duration} phÃºt`}
+              {customDuration ? `${customDuration} phút` : `${duration} phút`}
             </span>
           </div>
 
@@ -164,17 +174,17 @@ export const CreateSession: React.FC<CreateSessionProps> = ({
 
           {/* Custom duration input */}
           <div className="pt-1 flex items-center gap-2 text-xs text-slate-400">
-            <span>Hoáº·c tá»± Ä‘áº·t:</span>
+            <span>Hoặc tự đặt:</span>
             <input
               type="number"
               min="1"
               max="300"
-              placeholder="Sá»‘ phÃºt..."
+              placeholder="Số phút..."
               value={customDuration}
               onChange={(e) => setCustomDuration(e.target.value)}
               className="w-24 bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1 text-xs text-slate-200 focus:outline-none focus:border-indigo-500"
             />
-            <span>phÃºt</span>
+            <span>phút</span>
           </div>
         </div>
 
@@ -191,10 +201,10 @@ export const CreateSession: React.FC<CreateSessionProps> = ({
             </div>
             <div>
               <div className="text-xs font-semibold text-slate-200">
-                Cháº¿ Ä‘á»™ Mini Overlay Widget
+                Chế độ Widget nổi mini
               </div>
               <div className="text-[11px] text-slate-400">
-                Thu nhá» á»©ng dá»¥ng thÃ nh thanh ná»•i gÃ³c mÃ n hÃ¬nh vÃ  luÃ´n ghim trÃªn cÃ¹ng
+                Thu nhỏ ứng dụng thành thanh nổi ở góc màn hình và luôn ghim trên cùng
               </div>
             </div>
           </div>
@@ -215,14 +225,23 @@ export const CreateSession: React.FC<CreateSessionProps> = ({
 
         {/* Start Button */}
         <div className="pt-2">
+          {startError && (
+            <p
+              role="alert"
+              className="mb-3 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-300"
+            >
+              {startError}
+            </p>
+          )}
           <Button
             type="submit"
             variant="primary"
             size="lg"
+            disabled={isStarting}
             className="w-full text-base py-4 rounded-2xl shadow-xl shadow-indigo-600/25"
             icon={<Play className="w-5 h-5 fill-current" />}
           >
-            Báº¯t Ä‘áº§u Táº­p trung ngay
+            {isStarting ? "Đang bắt đầu..." : "Bắt đầu Tập trung ngay"}
           </Button>
         </div>
       </form>
