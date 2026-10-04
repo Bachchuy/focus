@@ -94,21 +94,27 @@ pub fn set_window_mode(mode: String, app_handle: AppHandle) -> Result<(), String
     if let Some(window) = app_handle.get_webview_window("main") {
         match mode.as_str() {
             "overlay" => {
-                let _ = window.set_size(Size::Logical(LogicalSize {
-                    width: 360.0,
-                    height: 140.0,
-                }));
-                let _ = window.set_always_on_top(true);
-                let _ = window.set_resizable(false);
+                window.set_decorations(false).map_err(|e| e.to_string())?;
+                window
+                    .set_size(Size::Logical(LogicalSize {
+                        width: 360.0,
+                        height: 140.0,
+                    }))
+                    .map_err(|e| e.to_string())?;
+                window.set_always_on_top(true).map_err(|e| e.to_string())?;
+                window.set_resizable(false).map_err(|e| e.to_string())?;
             }
             "main" => {
-                let _ = window.set_size(Size::Logical(LogicalSize {
-                    width: 860.0,
-                    height: 720.0,
-                }));
-                let _ = window.set_always_on_top(false);
-                let _ = window.set_resizable(true);
-                let _ = window.center();
+                window.set_decorations(true).map_err(|e| e.to_string())?;
+                window
+                    .set_size(Size::Logical(LogicalSize {
+                        width: 860.0,
+                        height: 720.0,
+                    }))
+                    .map_err(|e| e.to_string())?;
+                window.set_always_on_top(false).map_err(|e| e.to_string())?;
+                window.set_resizable(true).map_err(|e| e.to_string())?;
+                window.center().map_err(|e| e.to_string())?;
             }
             _ => return Err("Invalid window mode".into()),
         }

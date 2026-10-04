@@ -58,7 +58,8 @@ export async function startBlocking(
   return await invoke<SessionStatus>("start_blocking", {
     goal,
     durationMinutes,
-    blacklist, blocked_urls: blockedUrls,
+    blacklist,
+    blockedUrls,
   });
 }
 
@@ -67,7 +68,7 @@ export async function stopBlocking(): Promise<SessionSummary> {
   if (!isTauri()) {
     console.warn("Running in web mode. Mocking stopBlocking.");
     return {
-      goal: "Má»¥c tiÃªu máº«u",
+      goal: "Mục tiêu mẫu",
       duration_minutes: 25,
       focused_seconds: 1500,
       completed: true,

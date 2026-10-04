@@ -1,5 +1,5 @@
 ﻿use std::fs;
-use std::path::Path;
+use std::collections::BTreeSet;
 use std::process::Command;
 
 const HOSTS_PATH: &str = r#"C:\Windows\System32\drivers\etc\hosts"#;
@@ -9,6 +9,13 @@ const MARKER_END: &str = "# FOCUSLOCK END";
 pub fn block_urls(urls: &[String]) -> Result<(), String> {
     if urls.is_empty() {
         return Ok(());
+    }
+
+    let mut domains = BTreeSet::new();
+    for url in urls {
+        let domain = normalize_domain(url)?;
+        domains.insert(domain.clone());
+        domains.insert(format!("www.{}", domain));
     }
 
     let mut current_content = match fs::read_to_string(HOSTS_PATH) {
@@ -21,12 +28,8 @@ pub fn block_urls(urls: &[String]) -> Result<(), String> {
 
     // Build new block
     let mut new_block = format!("\n{}\n", MARKER_START);
-    for url in urls {
-        let domain = url.trim().replace("https://", "").replace("http://", "").replace("www.", "");
-        if !domain.is_empty() {
-            new_block.push_str(&format!("127.0.0.1 {}\n", domain));
-            new_block.push_str(&format!("127.0.0.1 www.{}\n", domain));
-        }
+    for domain in domains {
+        new_block.push_str(&format!("127.0.0.1 {}\n", domain));
     }
     new_block.push_str(&format!("{}\n", MARKER_END));
 
@@ -41,6 +44,55 @@ pub fn block_urls(urls: &[String]) -> Result<(), String> {
     flush_dns();
 
     Ok(())
+}
+
+fn normalize_domain(input: &str) -> Result<String, String> {
+    let input = input.trim().to_ascii_lowercase();
+    let without_scheme = match input.split_once("://") {
+        Some(("http", rest)) | Some(("https", rest)) => rest,
+        Some(_) => return Err("Chỉ hỗ trợ URL bắt đầu bằng http:// hoặc https://.".into()),
+        None => input.as_str(),
+    };
+
+    let authority = without_scheme
+        .split(|character| matches!(character, '/' | '?' | '#'))
+        .next()
+        .unwrap_or_default();
+    let host = authority.rsplit('@').next().unwrap_or_default();
+    let host = if host.starts_with('[') {
+        return Err("Địa chỉ IP không được hỗ trợ; hãy nhập tên miền.".into());
+    } else if let Some((host, port)) = host.rsplit_once(':') {
+        if port.is_empty() || !port.chars().all(|character| character.is_ascii_digit()) {
+            return Err("Tên miền hoặc cổng không hợp lệ.".into());
+        }
+        host
+    } else {
+        host
+    };
+
+    let mut domain = host;
+    while let Some(without_www) = domain.strip_prefix("www.") {
+        domain = without_www;
+    }
+    domain = domain.trim_end_matches('.');
+
+    let valid = !domain.is_empty()
+        && domain.len() <= 253
+        && domain.split('.').all(|label| {
+            !label.is_empty()
+                && label.len() <= 63
+                && !label.starts_with('-')
+                && !label.ends_with('-')
+                && label
+                    .chars()
+                    .all(|character| character.is_ascii_alphanumeric() || character == '-')
+        });
+
+    if !valid {
+        return Err("Tên miền không hợp lệ.".into());
+    }
+
+    Ok(domain.to_string())
 }
 
 pub fn unblock_urls() -> Result<(), String> {

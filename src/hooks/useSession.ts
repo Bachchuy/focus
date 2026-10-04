@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   SessionStatus,
   SessionSummary,
@@ -139,9 +139,10 @@ export function useSession() {
   const start = async (
     goal: string,
     durationMinutes: number,
-    blacklist: string[]
+    blacklist: string[],
+    blockedUrls: string[] = []
   ) => {
-    const res = await startBlocking(goal, durationMinutes, blacklist);
+    const res = await startBlocking(goal, durationMinutes, blacklist, blockedUrls);
     setStatus(res);
     setSummary(null);
 

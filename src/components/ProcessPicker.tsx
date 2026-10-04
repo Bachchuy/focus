@@ -28,6 +28,21 @@ const WEB_PRESETS = [
   "netflix.com"
 ];
 
+const normalizeWebsiteHost = (rawUrl: string): string | null => {
+  const input = rawUrl.trim();
+  if (!input) return null;
+
+  const hasScheme = /^[a-z][a-z\d+.-]*:\/\//i.test(input);
+  if (hasScheme && !/^https?:\/\//i.test(input)) return null;
+
+  try {
+    const url = new URL(hasScheme ? input : `https://${input}`);
+    return url.hostname.toLowerCase().replace(/^www\./, "").replace(/\.$/, "") || null;
+  } catch {
+    return null;
+  }
+};
+
 export const ProcessPicker: React.FC<ProcessPickerProps> = ({ blacklist, onChange, blockedUrls, onChangeUrls }) => {
   const [runningApps, setRunningApps] = useState<ProcessItem[]>([]);
   const [installedApps, setInstalledApps] = useState<InstalledAppItem[]>([]);
@@ -56,8 +71,7 @@ export const ProcessPicker: React.FC<ProcessPickerProps> = ({ blacklist, onChang
   };
   
   const handleToggleUrl = (rawUrl: string) => {
-    let url = rawUrl.trim().toLowerCase();
-    url = url.replace("https://", "").replace("http://", "").replace("www.", "");
+    const url = normalizeWebsiteHost(rawUrl);
     if (!url) return;
     
     if (blockedUrls.includes(url)) {
@@ -78,7 +92,9 @@ export const ProcessPicker: React.FC<ProcessPickerProps> = ({ blacklist, onChang
   const handleAddCustomUrl = (e: React.FormEvent) => {
     e.preventDefault();
     if (customUrlInput.trim()) {
-      handleToggleUrl(customUrlInput);
+      const normalizedUrl = normalizeWebsiteHost(customUrlInput);
+      if (!normalizedUrl) return;
+      handleToggleUrl(normalizedUrl);
       setCustomUrlInput("");
     }
   };
