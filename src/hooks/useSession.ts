@@ -14,6 +14,7 @@ const STORAGE_KEY_BLACKLIST = "focuslock_blacklist_v1";
 const STORAGE_KEY_DURATION = "focuslock_duration_v1";
 const STORAGE_KEY_GOAL = "focuslock_recent_goal_v1";
 const STORAGE_KEY_OVERLAY_PREF = "focuslock_overlay_pref_v1";
+const STORAGE_KEY_URLS = "focuslock_urls_v1";
 
 export const DEFAULT_PRESET_BLACKLIST = [
   "discord.exe",
@@ -153,6 +154,7 @@ export function useSession() {
       JSON.stringify(durationMinutes)
     );
     localStorage.setItem(STORAGE_KEY_BLACKLIST, JSON.stringify(blacklist));
+    localStorage.setItem(STORAGE_KEY_URLS, JSON.stringify(blockedUrls));
 
     if (useOverlayWidget) {
       await setWindowMode("overlay");

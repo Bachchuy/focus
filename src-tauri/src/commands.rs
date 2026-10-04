@@ -81,6 +81,9 @@ pub fn get_running_processes() -> Result<Vec<ProcessItem>, String> {
             result.push(ProcessItem {
                 name: raw_name,
                 pid: pid.as_u32(),
+                executable_path: process
+                    .exe()
+                    .map(|path| path.to_string_lossy().into_owned()),
             });
         }
     }
@@ -142,31 +145,149 @@ pub fn close_window(app_handle: AppHandle) -> Result<(), String> {
     }
 }
 use std::process::Command;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct InstalledApp {
     pub name: String,
-    pub executable: String,
+    pub executable: Option<String>,
+    pub executable_path: Option<String>,
+    pub icon_path: Option<String>,
+    pub publisher: Option<String>,
+    pub version: Option<String>,
+    pub install_date: Option<String>,
+}
+
+#[derive(Deserialize)]
+#[serde(untagged)]
+enum InstalledAppsJson {
+    Many(Vec<InstalledApp>),
+    One(InstalledApp),
 }
 
 #[tauri::command]
 pub fn get_installed_apps() -> Result<Vec<InstalledApp>, String> {
     let script = r#"
+        [Console]::OutputEncoding = New-Object -TypeName System.Text.UTF8Encoding -ArgumentList $false
+        $OutputEncoding = [Console]::OutputEncoding
         $shell = New-Object -ComObject WScript.Shell
-        Get-ChildItem -Path "$env:ProgramData\Microsoft\Windows\Start Menu\Programs", "$env:APPDATA\Microsoft\Windows\Start Menu\Programs" -Recurse -Filter *.lnk -ErrorAction SilentlyContinue | ForEach-Object {
+        $apps = @{}
+        $shortcutPaths = @(
+            "$env:ProgramData\Microsoft\Windows\Start Menu\Programs",
+            "$env:APPDATA\Microsoft\Windows\Start Menu\Programs"
+        )
+
+        Get-ChildItem -Path $shortcutPaths -Recurse -Filter *.lnk -ErrorAction SilentlyContinue | ForEach-Object {
             $target = $shell.CreateShortcut($_.FullName).TargetPath
-            if ($target -match "\.exe$") {
-                [PSCustomObject]@{
-                    Name = $_.BaseName
-                    Executable = [System.IO.Path]::GetFileName($target)
+            if ($target -match "(?i)\.exe$" -and $_.BaseName -notmatch "(?i)^(uninstall|unins|remove)\b") {
+                $executable = [System.IO.Path]::GetFileName($target)
+                $key = $executable.ToLowerInvariant()
+                if (-not $apps.ContainsKey($key)) {
+                    $apps[$key] = [PSCustomObject]@{
+                        name = $_.BaseName
+                        executable = $executable
+                        executablePath = $target
+                        iconPath = $shell.CreateShortcut($_.FullName).IconLocation
+                        publisher = $null
+                        version = $null
+                        installDate = $null
+                    }
                 }
             }
-        } | Group-Object Executable | ForEach-Object { $_.Group[0] } | ConvertTo-Json -Compress
+        }
+
+        $registryPaths = @(
+            'HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*',
+            'HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*',
+            'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*'
+        )
+        Get-ItemProperty -Path $registryPaths -ErrorAction SilentlyContinue | ForEach-Object {
+            $registryApp = $_
+            if (-not $registryApp.DisplayName -or $registryApp.SystemComponent -eq 1 -or $registryApp.ParentKeyName) { return }
+            $displayName = [string]$registryApp.DisplayName
+            if ($displayName -match '(?i)^(uninstall|unins|remove)\b') { return }
+
+            $candidatePaths = @()
+            $installLocation = [Environment]::ExpandEnvironmentVariables([string]$registryApp.InstallLocation)
+            $shortcut = $apps.Values | Where-Object { $_.name -ieq $displayName } | Select-Object -First 1
+            if ($shortcut -and $shortcut.executablePath) {
+                $candidatePaths += $shortcut.executablePath
+            }
+
+            $iconPath = $null
+            if ($registryApp.DisplayIcon) {
+                $rawIcon = [Environment]::ExpandEnvironmentVariables([string]$registryApp.DisplayIcon)
+                $iconPath = ($rawIcon -replace ',\s*-?\d+\s*$', '').Trim().Trim('"')
+                if ($iconPath -match '(?i)\.exe$' -and (Test-Path -LiteralPath $iconPath)) {
+                    try {
+                        $iconVersion = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($iconPath)
+                        $displayKey = ($displayName -replace '[^\p{L}\p{N}]', '').ToLowerInvariant()
+                        $iconDescription = "$($iconVersion.ProductName) $($iconVersion.FileDescription)"
+                        $iconKey = ($iconDescription -replace '[^\p{L}\p{N}]', '').ToLowerInvariant()
+                        if ($displayKey.Length -ge 5 -and $iconKey.Contains($displayKey)) {
+                            $candidatePaths += $iconPath
+                        }
+                    } catch { }
+                }
+            }
+
+            if ($installLocation -and (Test-Path -LiteralPath $installLocation -PathType Container)) {
+                Get-ChildItem -LiteralPath $installLocation -Filter *.exe -File -Recurse -Depth 5 -ErrorAction SilentlyContinue | ForEach-Object {
+                    if ($_.Name -match '(?i)^(unins|uninstall|uninst)') { return }
+                    try {
+                        $fileVersion = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($_.FullName)
+                        $displayKey = ($displayName -replace '[^\p{L}\p{N}]', '').ToLowerInvariant()
+                        $fileDescription = "$($fileVersion.ProductName) $($fileVersion.FileDescription)"
+                        $fileKey = ($fileDescription -replace '[^\p{L}\p{N}]', '').ToLowerInvariant()
+                        if ($displayKey.Length -ge 5 -and $fileKey.Contains($displayKey)) {
+                            $candidatePaths += $_.FullName
+                        }
+                    } catch { }
+                }
+            }
+
+            if (-not $iconPath -and $shortcut) { $iconPath = $shortcut.iconPath }
+            $candidatePaths = @($candidatePaths | Sort-Object -Unique)
+            $installDate = $null
+            $registryInstallDate = [string]$registryApp.InstallDate
+            if ($registryInstallDate -match '^\d{8}$') {
+                $installDate = '{0}/{1}/{2}' -f $registryInstallDate.Substring(4, 2), $registryInstallDate.Substring(6, 2), $registryInstallDate.Substring(0, 4)
+            }
+            if ($candidatePaths.Count -eq 0) {
+                $key = "unresolved:$($displayName.ToLowerInvariant())"
+                $apps[$key] = [PSCustomObject]@{
+                    name = $displayName
+                    executable = $null
+                    executablePath = $null
+                    iconPath = $iconPath
+                    publisher = [string]$registryApp.Publisher
+                    version = [string]$registryApp.DisplayVersion
+                    installDate = $installDate
+                }
+            }
+
+            foreach ($candidatePath in $candidatePaths) {
+                $executable = [System.IO.Path]::GetFileName($candidatePath)
+                $key = $executable.ToLowerInvariant()
+                $apps[$key] = [PSCustomObject]@{
+                    name = $displayName
+                    executable = $executable
+                    executablePath = $candidatePath
+                    iconPath = $iconPath
+                    publisher = [string]$registryApp.Publisher
+                    version = [string]$registryApp.DisplayVersion
+                    installDate = $installDate
+                }
+            }
+        }
+
+        $orderedApps = @($apps.Values | Sort-Object name)
+        ConvertTo-Json -InputObject $orderedApps -Compress
     "#;
 
     let output = Command::new("powershell")
-        .args(&["-NoProfile", "-Command", script])
+        .args(&["-NoProfile", "-NonInteractive", "-Command", script])
         .output()
         .map_err(|e| e.to_string())?;
 
@@ -175,15 +296,14 @@ pub fn get_installed_apps() -> Result<Vec<InstalledApp>, String> {
     }
 
     let json_str = String::from_utf8_lossy(&output.stdout);
-    let apps: Vec<InstalledApp> = serde_json::from_str(&json_str).unwrap_or_else(|_| {
-        if let Ok(single) = serde_json::from_str::<InstalledApp>(&json_str) {
-            vec![single]
-        } else {
-            Vec::new()
-        }
-    });
-    
-    let mut apps = apps;
+    let parsed: InstalledAppsJson = serde_json::from_str(&json_str).map_err(|error| {
+        format!("Could not parse installed apps from Windows: {error}")
+    })?;
+    let mut apps = match parsed {
+        InstalledAppsJson::Many(apps) => apps,
+        InstalledAppsJson::One(app) => vec![app],
+    };
+
     apps.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
     
     Ok(apps)

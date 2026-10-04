@@ -29,6 +29,7 @@ export interface SessionSummary {
 export interface ProcessItem {
   name: string;
   pid: number;
+  executablePath?: string | null;
 }
 
 // Check if running within Tauri desktop environment
@@ -166,7 +167,12 @@ export async function onSessionCompleted(
 
 export interface InstalledAppItem {
   name: string;
-  executable: string;
+  executable: string | null;
+  executablePath?: string | null;
+  iconPath?: string | null;
+  publisher?: string;
+  version?: string;
+  installDate?: string;
 }
 
 export async function getInstalledApps(): Promise<InstalledAppItem[]> {

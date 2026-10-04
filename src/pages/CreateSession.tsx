@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 
 interface CreateSessionProps {
-  onStart: (goal: string, durationMinutes: number, blacklist: string[], blockedUrls: string[]) => Promise<void>;
+  onStart: (goal: string, durationMinutes: number, blacklist: string[], blockedUrls: string[]) => void | Promise<void>;
   useOverlay: boolean;
   onToggleOverlay: (val: boolean) => void;
 }
@@ -48,6 +48,7 @@ export const CreateSession: React.FC<CreateSessionProps> = ({
   });
 
   const [customDuration, setCustomDuration] = useState<string>("");
+  const [isStarting, setIsStarting] = useState(false);
   const [startError, setStartError] = useState<string | null>(null);
 
   const [blockedUrls, setBlockedUrls] = useState<string[]>(() => {
@@ -63,6 +64,7 @@ export const CreateSession: React.FC<CreateSessionProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setStartError(null);
+    setIsStarting(true);
     const finalGoal = goal.trim() || "Phiên tập trung chuyên sâu";
     const finalDuration = customDuration ? parseInt(customDuration, 10) : duration;
     localStorage.setItem("focuslock_recent_goal_v1", finalGoal);
@@ -74,6 +76,8 @@ export const CreateSession: React.FC<CreateSessionProps> = ({
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       setStartError(`Không thể bắt đầu phiên: ${message}`);
+    } finally {
+      setIsStarting(false);
     }
   };
 
@@ -102,7 +106,6 @@ export const CreateSession: React.FC<CreateSessionProps> = ({
           </label>
           <input
             type="text"
-            required
             placeholder="Bạn muốn hoàn thành việc gì? (Ví dụ: Hoàn thành bài báo cáo)"
             value={goal}
             onChange={(e) => setGoal(e.target.value)}
@@ -234,10 +237,11 @@ export const CreateSession: React.FC<CreateSessionProps> = ({
             type="submit"
             variant="primary"
             size="lg"
+            disabled={isStarting}
             className="w-full text-base py-4 rounded-2xl shadow-xl shadow-indigo-600/25"
             icon={<Play className="w-5 h-5 fill-current" />}
           >
-            Bắt đầu Tập trung ngay
+            {isStarting ? "Đang bắt đầu..." : "Bắt đầu Tập trung ngay"}
           </Button>
         </div>
       </form>

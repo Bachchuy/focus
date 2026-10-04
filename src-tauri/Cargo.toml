@@ -1,6 +1,6 @@
 [package]
 name = "focuslock"
-version = "0.1.0"
+version = "1.0.0"
 description = "FocusLock desktop focus timer"
 authors = ["FocusLock"]
 edition = "2021"
