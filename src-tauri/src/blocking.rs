@@ -35,9 +35,11 @@ pub struct SessionSummary {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
 pub struct ProcessItem {
     pub name: String,
     pub pid: u32,
+    pub executable_path: Option<String>,
 }
 
 #[derive(Clone)]
@@ -80,10 +82,8 @@ impl BlockingState {
             return Err("A focus session is already running.".to_string());
         }
 
-        // Apply URL block
-        if let Err(e) = crate::hosts::block_urls(&blocked_urls_list) {
-            return Err(e);
-        }
+        // Apply URL block and retain the normalized domains for the active-session status.
+        let normalized_blocked_urls = crate::hosts::block_urls(&blocked_urls_list)?;
 
         // Normalize blacklist to lowercase
         let mut set = HashSet::new();
@@ -110,7 +110,7 @@ impl BlockingState {
 
         {
             let mut bu = self.blocked_urls.write().map_err(|e| e.to_string())?;
-            *bu = blocked_urls_list.clone();
+            *bu = normalized_blocked_urls;
         }
 
         {

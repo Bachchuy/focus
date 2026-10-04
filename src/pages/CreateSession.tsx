@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+﻿import React, { useState, useEffect } from "react";
 import { Button } from "../components/Button";
 import { ProcessPicker } from "../components/ProcessPicker";
 import { DEFAULT_PRESET_BLACKLIST } from "../hooks/useSession";
@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 
 interface CreateSessionProps {
-  onStart: (goal: string, durationMinutes: number, blacklist: string[]) => void;
+  onStart: (goal: string, durationMinutes: number, blacklist: string[], blockedUrls: string[]) => void | Promise<void>;
   useOverlay: boolean;
   onToggleOverlay: (val: boolean) => void;
 }
@@ -48,17 +48,37 @@ export const CreateSession: React.FC<CreateSessionProps> = ({
   });
 
   const [customDuration, setCustomDuration] = useState<string>("");
+  const [isStarting, setIsStarting] = useState(false);
+  const [startError, setStartError] = useState<string | null>(null);
+
+  const [blockedUrls, setBlockedUrls] = useState<string[]>(() => {
+    const saved = localStorage.getItem("focuslock_urls_v1");
+    return saved ? JSON.parse(saved) : [];
+  });
 
   const [blacklist, setBlacklist] = useState<string[]>(() => {
     const saved = localStorage.getItem("focuslock_blacklist_v1");
     return saved ? JSON.parse(saved) : DEFAULT_PRESET_BLACKLIST;
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setStartError(null);
+    setIsStarting(true);
     const finalGoal = goal.trim() || "Phiên tập trung chuyên sâu";
     const finalDuration = customDuration ? parseInt(customDuration, 10) : duration;
-    onStart(finalGoal, Math.max(1, finalDuration), blacklist);
+    localStorage.setItem("focuslock_recent_goal_v1", finalGoal);
+    localStorage.setItem("focuslock_duration_v1", JSON.stringify(finalDuration));
+    localStorage.setItem("focuslock_blacklist_v1", JSON.stringify(blacklist));
+    localStorage.setItem("focuslock_urls_v1", JSON.stringify(blockedUrls));
+    try {
+      await onStart(finalGoal, Math.max(1, finalDuration), blacklist, blockedUrls);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      setStartError(`Không thể bắt đầu phiên: ${message}`);
+    } finally {
+      setIsStarting(false);
+    }
   };
 
   return (
@@ -86,7 +106,6 @@ export const CreateSession: React.FC<CreateSessionProps> = ({
           </label>
           <input
             type="text"
-            required
             placeholder="Bạn muốn hoàn thành việc gì? (Ví dụ: Hoàn thành bài báo cáo)"
             value={goal}
             onChange={(e) => setGoal(e.target.value)}
@@ -171,7 +190,7 @@ export const CreateSession: React.FC<CreateSessionProps> = ({
 
         {/* Section 3: App Blacklist */}
         <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-5 shadow-sm">
-          <ProcessPicker blacklist={blacklist} onChange={setBlacklist} />
+          <ProcessPicker blacklist={blacklist} onChange={setBlacklist} blockedUrls={blockedUrls} onChangeUrls={setBlockedUrls} />
         </div>
 
         {/* Section 4: Overlay Widget Preference */}
@@ -182,10 +201,10 @@ export const CreateSession: React.FC<CreateSessionProps> = ({
             </div>
             <div>
               <div className="text-xs font-semibold text-slate-200">
-                Chế độ Mini Overlay Widget
+                Chế độ Widget nổi mini
               </div>
               <div className="text-[11px] text-slate-400">
-                Thu nhỏ ứng dụng thành thanh nổi góc màn hình và luôn ghim trên cùng
+                Thu nhỏ ứng dụng thành thanh nổi ở góc màn hình và luôn ghim trên cùng
               </div>
             </div>
           </div>
@@ -206,17 +225,29 @@ export const CreateSession: React.FC<CreateSessionProps> = ({
 
         {/* Start Button */}
         <div className="pt-2">
+          {startError && (
+            <p
+              role="alert"
+              className="mb-3 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-300"
+            >
+              {startError}
+            </p>
+          )}
           <Button
             type="submit"
             variant="primary"
             size="lg"
+            disabled={isStarting}
             className="w-full text-base py-4 rounded-2xl shadow-xl shadow-indigo-600/25"
             icon={<Play className="w-5 h-5 fill-current" />}
           >
-            Bắt đầu Tập trung ngay
+            {isStarting ? "Đang bắt đầu..." : "Bắt đầu Tập trung ngay"}
           </Button>
         </div>
       </form>
     </div>
   );
 };
+
+
+

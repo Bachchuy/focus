@@ -71,8 +71,7 @@ export const ActiveSession: React.FC<ActiveSessionProps> = ({
           <div className="flex items-center gap-2 text-slate-300 font-medium">
             <Shield className="w-4 h-4 text-emerald-400" />
             <span>
-              Lá chắn xao nhãng đang hoạt động (
-              {status.blacklist.length} ứng dụng)
+              Lá chắn đang hoạt động ({status.blacklist.length} ứng dụng, {status.blocked_urls.length} trang web)
             </span>
           </div>
 
@@ -95,6 +94,15 @@ export const ActiveSession: React.FC<ActiveSessionProps> = ({
           total={totalSeconds}
           className="mt-3"
         />
+        {status.blocked_urls.length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-1.5" aria-label="Tên miền đã nhận để chặn">
+            {status.blocked_urls.map((domain) => (
+              <span key={domain} className="rounded-md border border-purple-500/30 bg-purple-500/10 px-2 py-1 font-mono text-[11px] text-purple-200">
+                {domain}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Controls */}
