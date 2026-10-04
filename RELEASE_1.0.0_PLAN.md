@@ -38,4 +38,7 @@
   - `src-tauri/target/release/bundle/msi/FocusLock_1.0.0_x64_en-US.msi` (~3.74 MiB)
   - `src-tauri/target/release/bundle/nsis/FocusLock_1.0.0_x64-setup.exe` (~2.52 MiB)
 - Đã sửa `.gitignore` vì các dòng `dist/` và `src-tauri/target/` trước đây bị mã hóa xen kẽ UTF-8/UTF-16, khiến artifact hiện ra như file chưa theo dõi.
-- Còn lại: rà soát/stage/commit, merge theo Git Flow, tạo tag `v1.0.0`, push, và xuất bản GitHub Release. `gh` CLI hiện không có; sẽ dùng giao diện GitHub nếu phiên đăng nhập khả dụng, nếu không sẽ báo rõ giới hạn.
+- Đã commit candidate `b5d1de1`, merge vào `main`, tạo annotated tag `v1.0.0`, đồng bộ release về `develop`, và push `main`, `develop`, `release/1.0.0`, tag lên `origin`.
+- GitHub Release đã xuất bản, không ở chế độ draft: [FocusLock 1.0.0](https://github.com/Bachchuy/focus/releases/tag/v1.0.0). API xác nhận có cả MSI và NSIS assets.
+- Hai installer chưa được ký số (`NotSigned`); Windows SmartScreen có thể hiện cảnh báo khi tải/chạy.
+- Sau khi phát hiện `origin/main` có merge commit mới hơn, đã fetch và hợp nhất lịch sử đó mà không force-push. `main` hiện ở `4f03ac2`; tag `v1.0.0` trỏ tới merge commit phát hành `7e47709`; `develop` ở `d2e6953`.
